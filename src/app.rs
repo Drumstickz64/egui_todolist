@@ -11,19 +11,21 @@ pub struct TemplateApp {
     tasks: Vec<Task>,
     #[serde(skip)]
     tasks_to_delete: HashSet<usize>,
+    #[serde(skip)]
+    curr_task_input: String,
 }
 
 impl TemplateApp {
     /// Called once before the first frame.
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customized the look at feel of egui using
         // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
 
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
-        // if let Some(storage) = cc.storage {
-        //     return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        // }
+        if let Some(storage) = cc.storage {
+            return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+        }
 
         Default::default()
     }
@@ -55,6 +57,27 @@ impl TemplateApp {
         });
     }
 
+    fn ui_task_add_section(&mut self, ui: &mut egui::Ui) {
+        ui.group(|ui| {
+            ui.horizontal(|ui| {
+                ui.label("Enter Task: ");
+                let on_submit = |app: &mut TemplateApp| {
+                    app.add_task();
+                    app.curr_task_input.clear();
+                };
+                let lost_focus = ui
+                    .text_edit_singleline(&mut self.curr_task_input)
+                    .lost_focus();
+                if lost_focus && ui.input().key_pressed(egui::Key::Enter) {
+                    on_submit(self);
+                };
+                if ui.button("Add").clicked() {
+                    on_submit(self)
+                }
+            });
+        });
+    }
+
     fn delete_tasks(&mut self) {
         self.tasks = self
             .tasks
@@ -65,9 +88,17 @@ impl TemplateApp {
             .collect();
         self.tasks_to_delete.clear();
     }
+
+    fn add_task(&mut self) {
+        self.tasks.push(Task::new(&self.curr_task_input));
+    }
 }
 
 impl eframe::App for TemplateApp {
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        eframe::set_value(storage, eframe::APP_KEY, self);
+    }
+
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -76,6 +107,8 @@ impl eframe::App for TemplateApp {
             ui.vertical_centered(|ui| {
                 ui.heading("Egui Todolist");
             });
+            ui.add_space(32.0);
+            self.ui_task_add_section(ui);
             ui.add_space(32.0);
             self.ui_task_list(ui);
         });
