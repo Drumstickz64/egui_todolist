@@ -5,11 +5,12 @@
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
     // Log to stdout (if you run with `RUST_LOG=debug`).
+
     tracing_subscriber::fmt::init();
 
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
-        "eframe template",
+        "Todo List",
         native_options,
         Box::new(|cc| Box::new(egui_todolist::TemplateApp::new(cc))),
     );
